@@ -1,0 +1,73 @@
+#include "MagicServer.h"
+
+class MagicServer {
+    
+    private:
+      String msg;
+      String PARAM_MESSAGE[4]={"home_id","room_id","node_id","message"};
+      void forwardRequest() {
+          WiFiClient client;
+          HTTPClient http;
+      
+          Serial.print("[HTTP] begin...\n");
+          if (http.begin(client, "http://"+this->home_id+"?room_id="+this->room_id+"&node_id="+this->node_id+"&message="+this->msg)) {      
+      
+            Serial.print("[HTTP] GET...\n");
+            // start connection and send HTTP header
+            int httpCode = http.GET();
+      
+            // httpCode will be negative on error
+            if (httpCode > 0) {
+              // HTTP header has been send and Server response header has been handled
+              Serial.printf("[HTTP] GET... code: %d\n", httpCode);
+      
+              // file found at server
+              if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
+                String payload = http.getString();
+                Serial.println(payload);
+              }
+            } else {
+                Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
+            }
+      
+            http.end();
+          } else {
+              Serial.printf("[HTTP} Unable to connect\n");
+          }
+      }
+    public:
+      String home_id,room_id,node_id;
+      MagicServer() {
+        home_id="";
+        node_id="";
+        room_id="";
+        msg="_NULL_";
+      }
+      void init() {
+        server_Server.on("/updateNode", HTTP_GET, [this] (AsyncWebServerRequest *request) {
+          String message;
+          if (request->hasParam(PARAM_MESSAGE[0])) {
+              this->home_id = request->getParam(PARAM_MESSAGE[0])->value();
+          } else {
+              message = "No home id sent";
+          }
+          if (request->hasParam(PARAM_MESSAGE[1])) {
+              this->room_id = request->getParam(PARAM_MESSAGE[1])->value();
+          } else {
+              message = "No room id sent";
+          }
+          if (request->hasParam(PARAM_MESSAGE[2])) {
+              this->node_id = request->getParam(PARAM_MESSAGE[2])->value();
+          } else {
+              message = "No node id sent";
+          }
+          if (request->hasParam(PARAM_MESSAGE[3])) {
+              this->msg = request->getParam(PARAM_MESSAGE[3])->value();
+          } else {
+              message = "No message sent";
+          }
+          forwardRequest();
+          request->send(200, "text/plain", "True");
+          });
+      }
+};

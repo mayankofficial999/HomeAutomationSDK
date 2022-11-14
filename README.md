@@ -1,4 +1,4 @@
-# Home Automation SDk
+# Magic Automation SDK
 
 Home Automation SDK aims to provide a fully fledged framework to automate setting up and maintenance of smart devices.
 
